@@ -1,0 +1,8 @@
+[package]
+name = "rustchat"
+version = "0.1.0"
+authors = ["David Mally <djmally@gmail.com>"]
+
+[dependencies]
+bincode = "0.3.0"
+rustc-serialize = "0.3.0"
