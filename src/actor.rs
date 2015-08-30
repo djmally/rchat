@@ -1,5 +1,8 @@
+use std::sync::{Arc, Mutex};
 use std::net::UdpSocket;
 use std::string::String;
+use std::thread;
+use message_processor;
 use packet;
 use queue_controller;
 
@@ -10,6 +13,27 @@ pub struct Actor {
     q_ctrller: queue_controller::QueueController,
 }
 
+pub fn event_loop(actor_mutex: Arc<Mutex<Actor>>) -> () {
+    let (sender_clone, receiver_clone) = (actor_mutex.clone(), actor_mutex.clone());
+    thread::Builder::new().name("sender".to_string()).spawn(move || {
+        loop {
+            let ref mut actor: Actor = *sender_clone.lock().unwrap();
+            actor.prepare_msg(&message_processor::read_stdin());
+            actor.send_msg("127.0.0.1:8000");
+        }
+    }).ok().expect("Unable to spawn thread sender")
+      .join().ok().expect("Unable to join thread sender");
+    thread::Builder::new().name("receiver".to_string()).spawn(move || {
+        loop {
+            let ref mut actor: Actor = *receiver_clone.lock().unwrap();
+            actor.recv_msg();
+            println!("{}", actor.read_msg());
+        }
+    }).ok().expect("Unable to spawn thread receiver")
+      .join().ok().expect("Unable to join thread receiver");
+}
+
+
 impl Actor {
 
     pub fn new(ip: &str, port: &str) -> Actor {
@@ -18,13 +42,13 @@ impl Actor {
             curr_seq_num: 1,
             q_ctrller: queue_controller::QueueController::new(),
             sock: UdpSocket::bind(&(ip.to_string() + ":" + port) as &str)
-                            .ok()
-                            .expect(&format!("Unable to bind to IP {} at port {}!",
+                             .ok()
+                             .expect(&format!("Unable to bind to IP {} at port {}!",
                                               ip, port)),
         }
     }
 
-    pub fn prepare_msg(&mut self, msg: &str) -> () {
+    fn prepare_msg(&mut self, msg: &str) -> () {
         // TODO packet chunking
         let packet = packet::Packet{flag: packet::Flag::PSH,
                                     seq_num: self.curr_seq_num,
@@ -33,7 +57,7 @@ impl Actor {
         self.curr_seq_num += 1;
     }
 
-    pub fn send_msg(&mut self, addr: &str) -> () {
+    fn send_msg(&mut self, addr: &str) -> () {
         if let Some(m) = self.q_ctrller.deq_out_msg() {
             let bytes = self.sock.send_to(&m.as_bytes(), addr)
                                  .unwrap_or(0);
@@ -59,7 +83,6 @@ impl Actor {
         }
         String::new()
     }
-
 }
 
 #[cfg(test)]
