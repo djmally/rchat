@@ -1,6 +1,5 @@
 use std::collections::vec_deque::VecDeque;
 use std::collections::binary_heap::BinaryHeap;
-use std::net::UdpSocket;
 use std::sync::{Arc, Mutex};
 use packet;
 
@@ -40,15 +39,14 @@ mod tests {
     use packet;
 
     #[test]
-    fn test_enq_out_msg() {
+    fn test_out_mq() {
         let mut q_ctrller = QueueController::new();
         for i in (0..2) {
-            q_ctrller
-                .enq_out_msg(packet::Packet{flag: packet::Flag::PSH,
-                                            seq_num: i,
-                                            msg: format!("test{}", i)
-                                                 .as_bytes()
-                                                 .to_vec()});
+            q_ctrller.enq_out_msg(packet::Packet{flag: packet::Flag::PSH,
+                                  seq_num: i,
+                                  msg: format!("test{}", i)
+                                       .as_bytes()
+                                       .to_vec()});
         }
         assert_eq!(q_ctrller.out_mq.lock().unwrap().len(), 2);
         for (idx, elt) in q_ctrller.out_mq.lock().unwrap().iter().enumerate() {
@@ -58,34 +56,22 @@ mod tests {
         }
     }
 
-    /*#[test]
-    fn test_deq_in_msg() {
-        let mut actor = Actor::new("127.0.0.1", "8000");
+    #[test]
+    fn test_in_mq() {
+        let mut q_ctrller = QueueController::new();
         for idx in [3,7,5,1].into_iter() {
-            actor.in_mq
-                 .push(packet::Packet{flag: packet::Flag::PSH,
-                                      seq_num: *idx,
-                                      msg: format!("test{}", *idx)
-                                           .as_bytes()
-                                           .to_vec()});
+            q_ctrller.enq_in_msg(packet::Packet{flag: packet::Flag::PSH,
+                                 seq_num: *idx,
+                                 msg: format!("test{}", *idx)
+                                      .as_bytes()
+                                      .to_vec()});
         }
         let mut i = 1;
-        while let Some(elt) = actor.in_mq.pop() {
+        while let Some(elt) = q_ctrller.deq_in_msg() {
             assert_eq!(elt.seq_num, i);
             assert_eq!(elt.msg, format!("test{}", i).as_bytes().to_vec());
             i += 2;
         }
     }
 
-    #[test]
-    fn test_send_recv_simple() {
-        let mut sender = Actor::new("127.0.0.1", "8001");
-        let mut receiver = Actor::new("127.0.0.1", "8000");
-        let test_msg = "test";
-        sender.prepare_msg(test_msg);
-        sender.send_msg("127.0.0.1:8000");
-        receiver.recv_msg();
-        let msg = receiver.q_ctrller.deq_in_msg();
-        assert_eq!(msg, test_msg);
-    }*/
 }
