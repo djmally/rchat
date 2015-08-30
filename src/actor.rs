@@ -1,6 +1,4 @@
 use std::net::UdpSocket;
-use std::collections::vec_deque::VecDeque;
-use std::collections::binary_heap::BinaryHeap;
 use std::string::String;
 use packet;
 use queue_controller;
@@ -64,3 +62,19 @@ impl Actor {
 
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_send_recv_simple() {
+        let mut sender = Actor::new("127.0.0.1", "8001");
+        let mut receiver = Actor::new("127.0.0.1", "8000");
+        let test_msg = "test";
+        sender.prepare_msg(test_msg);
+        sender.send_msg("127.0.0.1:8000");
+        receiver.recv_msg();
+        let msg = receiver.read_msg();
+        assert_eq!(msg, test_msg);
+    }
+}
