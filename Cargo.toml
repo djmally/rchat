@@ -1,5 +1,5 @@
 [package]
-name = "rustchat"
+name = "rchat"
 version = "0.1.0"
 authors = ["David Mally <djmally@gmail.com>"]
 
